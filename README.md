@@ -10,16 +10,17 @@ This repository provides a runnable NestJS backend with sample controllers and s
 
 - **Root API**: `GET /` returns a greeting string from `AppService`.
 - **Health endpoint**: `GET /health` returns a JSON object with `status` and `timestamp` for monitoring.
-- **Unit tests**: `AppService` and `AppController` are tested in isolation with mocked dependencies; `HealthController` is tested without HTTP.
+- **Unit tests**: `AppService` and `AppController` are tested in isolation with mocked dependencies. `HealthController` is tested without HTTP.
 - **E2E tests**: Full application is bootstrapped and `/` and `/health` are asserted via HTTP using Supertest.
 - **TypeScript**: All source and test code use strict compiler options.
 - **Documentation**: Inline documentation in the codebase follows a structured comment style.
-- **Linting**: ESLint with TypeScript and Prettier integration for consistent style.
+- **Linting**: ESLint flat config in TypeScript (`eslint.config.mts`) with Prettier. It uses `jiti` to load the config.
 
 ## Prerequisites
 
 - **Node.js**: v18 or later (LTS recommended).
 - **npm**: v9 or later (or compatible package manager).
+
 ## Installation
 
 From the project root:
@@ -52,7 +53,8 @@ test-repo-of-introduction-to-testing-in-NestJS/
 ├── tsconfig.build.json
 ├── nest-cli.json
 ├── jest.config.ts             # Jest config for unit/integration tests
-├── eslint.config.mjs
+├── eslint.config.mts          # ESLint flat config (TypeScript)
+├── eslint-config.d.ts         # Type declaration for eslint-config-prettier
 ├── Doxyfile                   # Config for generating HTML docs from source
 ├── .gitignore
 ├── LICENSE
@@ -74,15 +76,18 @@ test-repo-of-introduction-to-testing-in-NestJS/
 - `jest`, `ts-jest`: Test runner and TypeScript support.
 - `supertest`, `@types/supertest`: HTTP assertions for E2E tests.
 - `typescript`, `ts-node`, `tsconfig-paths`: TypeScript compilation and execution.
+- `source-map-support`: Improves stack traces when running compiled output.
 - `eslint`, `@typescript-eslint/*`, `eslint-config-prettier`, `eslint-plugin-prettier`: Linting and formatting.
+- `jiti`: Loads the TypeScript ESLint config (`eslint.config.mts`) at runtime.
 - `@types/node`, `@types/express`, `@types/jest`: Type definitions.
 
 ## Configuration
 
-- **TypeScript**: `tsconfig.json` uses strict compiler options.
+- **TypeScript**: `tsconfig.json` uses strict compiler options. `tsconfig.build.json` excludes `eslint.config.mts` and `jest.config.ts` from the Nest build so they are not type-checked with the app.
 - **Jest (unit)**: `jest.config.ts` at the project root configures `rootDir: "src"`, `testRegex: ".*\\.spec\\.ts$"`, and `ts-jest` for unit and integration tests.
 - **Jest (E2E)**: `test/jest-e2e.json` configures the E2E suite with `rootDir: "."` and `testRegex: ".e2e-spec.ts$"`.
-- **Nest**: `nest-cli.json` sets `sourceRoot` to `src` and uses the default Nest CLI behaviour.
+- **ESLint**: `eslint.config.mts` is the flat config (TypeScript). ESLint loads it via `jiti`. `eslint-config.d.ts` declares types for `eslint-config-prettier`.
+- **Nest**: `nest-cli.json` sets `sourceRoot` to `src` and uses the default Nest CLI behaviour. Build output is `dist/main.js` and sibling files under `dist/`.
 
 ## Running the Application
 
@@ -140,21 +145,22 @@ This runs `test/app.e2e-spec.ts` using `test/jest-e2e.json`, starting the full `
 
 ### Debugging the application
 
-- Start in debug mode: `npm run start:debug`. The Nest process will listen for a debugger on the default port; attach your IDE or Chrome to it to step through `main.ts` and request handling.
+- Start in debug mode: `npm run start:debug`. The Nest process will listen for a debugger on the default port. Attach your IDE or Chrome to it to step through `main.ts` and request handling.
 
 ### Common issues
 
 - **Port in use**: Set `PORT=3001` (or another port) before `npm run start` or `npm run start:dev`.
 - **Module not found**: Ensure `npm install` has been run and that imports use the same path style as the rest of the project (no `.js` extensions in imports for this setup).
-- **Jest cannot find modules**: Ensure `jest.config.ts` and `test/jest-e2e.json` are not overwritten by a `jest` key in `package.json`; this project uses the config files.
+- **Jest cannot find modules**: Ensure `jest.config.ts` and `test/jest-e2e.json` are not overwritten by a `jest` key in `package.json`. This project uses the config files.
+- **start:prod fails or "Cannot find module"**: Run `npm run build` first. `start:prod` runs `node dist/main` and requires the `dist/` directory to exist.
 
 ## Code Change Summary
 
-- **Added** `package.json` with NestJS, Jest, Supertest, TypeScript, and ESLint dependencies and scripts for start, test, test:e2e, lint, and build.
-- **Added** `tsconfig.json` and `tsconfig.build.json` with strict options.
+- **Added** `package.json` with NestJS, Jest, Supertest, TypeScript, and ESLint dependencies and scripts for start, start:prod, build, test, test:e2e, test:cov, lint, format, and doc. Includes `overrides` for `minimatch`, `glob`, `test-exclude`, and nested `@nestjs/cli` → `ajv` to address deprecations and vulnerabilities.
+- **Added** `tsconfig.json` and `tsconfig.build.json` with strict options. The build excludes `eslint.config.mts` and `jest.config.ts`.
 - **Added** `nest-cli.json` for the Nest CLI.
 - **Added** `jest.config.ts` for unit/integration tests and `test/jest-e2e.json` for E2E tests.
-- **Added** `eslint.config.mjs` for ESLint flat config with TypeScript and Prettier.
+- **Added** `eslint.config.mts` (TypeScript) for ESLint flat config with TypeScript and Prettier. `eslint-config.d.ts` declares module typings and `jiti` is used to load the config.
 - **Added** `src/main.ts`, `src/app.module.ts`, `src/app.controller.ts`, `src/app.service.ts` and their unit tests (`*.spec.ts`).
 - **Added** `src/health/health.module.ts`, `src/health/health.controller.ts` and `src/health/health.controller.spec.ts`.
 - **Added** `test/app.e2e-spec.ts` for E2E tests using `Test.createTestingModule` and Supertest.
@@ -229,6 +235,7 @@ flowchart TB
 - **`npm run test:debug`**: Run Jest with Node inspector for debugging.
 - **`npm run lint`**: Run ESLint on `src` and `test`.
 - **`npm run format`**: Run Prettier on `src` and `test` TypeScript files.
+- **`npm run doc`**: Generate HTML documentation from source.
 
 ## Linting and Formatting
 
@@ -238,6 +245,6 @@ flowchart TB
 ## Building for Production
 
 1. Build: `npm run build`. Output is in `dist/`.
-2. Run: `node dist/main.js` or use `npm run start:prod` (which runs `node dist/main`).
+2. Run: `npm run start:prod` (runs `node dist/main`). The build outputs `dist/main.js` and other compiled files under `dist/`.
 
 Ensure environment variables (e.g. `PORT`) are set in the production environment as needed.
